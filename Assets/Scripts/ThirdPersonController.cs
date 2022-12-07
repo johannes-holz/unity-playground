@@ -403,20 +403,22 @@ namespace StarterAssets
                 CurSlideVelocity = targetSlideVelocity;
             }
 
+            CurSlideVelocity = targetSlideVelocity;
+
             // move the player
             if (targetSlideVelocity > 0.2f)
             {
                 Vector3 slideDirection = new Vector3(hitNormal.x, -hitNormal.y, hitNormal.z);
 
-                slideDirection = Vector3.ProjectOnPlane(_controller.velocity, hitNormal);
-                if (slideDirection.magnitude > 0)
-                {
-                    //slideDirection = Vector3.MoveTowards(slideDirection, Vector3.zero, 0.1f * Time.deltaTime);
-                    slideDirection *= (1f - 0.1f * Time.deltaTime);
-                }
-                _controller.Move(slideDirection * Time.deltaTime);
+                //slideDirection = Vector3.ProjectOnPlane(_controller.velocity, hitNormal);
+                //if (slideDirection.magnitude > 0)
+                //{
+                //    //slideDirection = Vector3.MoveTowards(slideDirection, Vector3.zero, 0.1f * Time.deltaTime);
+                //    slideDirection *= (1f - 0.1f * Time.deltaTime);
+                //}
+                //_controller.Move(slideDirection * Time.deltaTime);
 
-                //_controller.Move(slideDirection.normalized * (CurSlideVelocity * Time.deltaTime) + slideDirection.normalized * (_speed * Time.deltaTime));
+                _controller.Move(slideDirection.normalized * (CurSlideVelocity * Time.deltaTime) + targetDirection.normalized * (1f * Time.deltaTime));
             } else {
 
                 //Physics.SyncTransforms();
