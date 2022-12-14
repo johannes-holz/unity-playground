@@ -56,14 +56,6 @@ namespace StarterAssets
         [Tooltip("The radius of the grounded check. Should match the radius of the CharacterController")]
         public float GroundedRadius = 0.28f;
 
-        public bool Sliding = false;
-        public float CurSlideVelocity = 0f;
-        public float MaxSlideVelocity = 3f;
-        public bool WillSlideOnSlopes = true;
-        public float SlopeLimit = 40f;
-        private Vector3 hitNormal;
-        public float debuggoYo = 0.2f;
-
         [Tooltip("What layers the character uses as ground")]
         public LayerMask GroundLayers;
 
@@ -118,10 +110,6 @@ namespace StarterAssets
 
         private bool _hasAnimator;
 
-        // debug stuff
-        private Vector3 _wallJumpSpherePos;
-        private float _wallJumpSphereRad;
-
         private bool IsCurrentDeviceMouse
         {
             get
@@ -168,31 +156,14 @@ namespace StarterAssets
         {
             _hasAnimator = TryGetComponent(out _animator);
 
-            // Kappa. Put this in a gamecontroller
-            if (_input.toggleFullscreen)
-            {
-                Screen.fullScreen = !Screen.fullScreen;
-            }
-
-
-            // just put here to debug. should be in walljump if condition in jump and gravity
-            Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
-            float yDir = Mathf.Atan2(-inputDirection.x, -inputDirection.z) * Mathf.Rad2Deg +
-                          _mainCamera.transform.eulerAngles.y;
-            Vector3 worldDir = Quaternion.Euler(new Vector3(0f, yDir, 0f)) * new Vector3(0f, 0f, 1f);
-            _wallJumpSphereRad = _controller.radius * 1.2f;
-            _wallJumpSpherePos = new Vector3(transform.position.x, transform.position.y + _wallJumpSphereRad, transform.position.z) + worldDir * _wallJumpSphereRad;
-
-            SomeAction();
             JumpAndGravity();
             GroundedCheck();
             Move();
-
-            CameraRotation();
         }
 
         private void LateUpdate()
         {
+            CameraRotation();
         }
 
         private void AssignAnimationIDs()
@@ -204,93 +175,13 @@ namespace StarterAssets
             _animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
         }
 
-        private void SomeAction()
-        {
-            if (_input.something)
-            {
-                Vector3 pos = gameObject.transform.position;
-                Debug.LogError(pos);
-                _controller.enabled = false;
-                gameObject.transform.position = new Vector3(0, 0, 0);
-
-                _controller.enabled = true;
-
-                _input.something = false;
-            }
-        }
-
-        public void ParentTransform(Transform trans)
-        {
-            _controller.enabled = false;
-            transform.parent = trans;
-            _controller.enabled = true;
-        }
-
-        Ray rayYo;
         private void GroundedCheck()
         {
             // set sphere position, with offset
             Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset,
                 transform.position.z);
-            //bool oldGrounded = Grounded;
             Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers,
                 QueryTriggerInteraction.Ignore);
-
-            //Collider[] cols = Physics.OverlapSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
-            //foreach (Collider col in cols) {
-            //    Vector3 cPoint = col.ClosestPoint(spherePosition);
-            //   // Gizmos.DrawSphere(cPoint, 0.2f);
-            //    var dir = (spherePosition - cPoint).normalized;
-            //    var ray = new Ray(spherePosition, dir);
-            //    rayYo = ray;
-            //    var hasHit = Physics.Raycast(ray, out var hitInfo, float.MaxValue);
-
-            //}
-            //if (oldGrounded != Grounded)
-            //{
-            //    Debug.Log("Grounded status changed: " + Grounded);
-            //}
-            Debug.DrawRay(spherePosition, Vector3.down, Color.red);
-            //if (Grounded && Physics.Raycast(spherePosition, Vector3.down, out RaycastHit slopeHit, GroundedRadius, GroundLayers)) {
-            //    hitNormal = slopeHit.normal;
-            //    Sliding = Vector3.Angle(hitNormal, Vector3.up) > SlopeLimit;
-
-            spherePosition.y += GroundedRadius;
-            //if (Grounded && Physics.SphereCast(spherePosition, GroundedRadius, Vector3.down, out RaycastHit slopeHit, GroundedRadius, GroundLayers))
-            //{
-            //    hitNormal = slopeHit.normal;
-            //    Sliding = Vector3.Angle(hitNormal, Vector3.up) > SlopeLimit;
-            bool ignoreFirstZero = true;
-            if (Grounded)
-            {
-                RaycastHit[] hits = Physics.SphereCastAll(spherePosition, GroundedRadius, Vector3.down, debuggoYo, GroundLayers);
-                float minSlope = 200f;
-                string debuggo = "";
-                foreach (RaycastHit slopeHit in hits)
-                {
-                    float angle = Vector3.Angle(slopeHit.normal, Vector3.up);
-                    debuggo += angle + ", ";
-                    if (angle < 0.01 & ignoreFirstZero)
-                    {
-                        ignoreFirstZero = false;
-                        continue;
-                    }
-                    if (angle < minSlope)
-                    {
-                        minSlope = Mathf.Min(minSlope, angle);
-                        hitNormal = slopeHit.normal;
-                    }
-                }
-                minSlope = minSlope > 180f ? 0f : minSlope;
-                Debug.Log(debuggo);
-                //Debug.Log(Vector3.Angle(hitNormal, Vector3.up));
-                Sliding = minSlope > SlopeLimit;
-            } else
-            {
-                Sliding = false;
-            }
-
-
 
             // update animator if using character
             if (_hasAnimator)
@@ -299,20 +190,16 @@ namespace StarterAssets
             }
         }
 
-
         private void CameraRotation()
         {
             // if there is an input and camera position is not fixed
             if (_input.look.sqrMagnitude >= _threshold && !LockCameraPosition)
             {
-                // TODO: need camspeed settings per device (mouse/controller)
-                // Don't multiply mouse input by Time.deltaTime
-                float deltaTimeMultiplier = IsCurrentDeviceMouse ? 2.0f : Time.deltaTime;
+                //Don't multiply mouse input by Time.deltaTime;
+                float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 
-                float camSpeed = 1.0f;
-
-                _cinemachineTargetYaw += camSpeed * _input.look.x * deltaTimeMultiplier;
-                _cinemachineTargetPitch += camSpeed * _input.look.y * deltaTimeMultiplier;
+                _cinemachineTargetYaw += _input.look.x * deltaTimeMultiplier;
+                _cinemachineTargetPitch += _input.look.y * deltaTimeMultiplier;
             }
 
             // clamp our rotations so our values are limited 360 degrees
@@ -375,57 +262,15 @@ namespace StarterAssets
 
                 // rotate to face input direction relative to camera position
                 transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
-
-                if (_input.aim)
-                {
-                    Debug.Log("AIMING");
-                    transform.rotation = Quaternion.Euler(0.0f, _mainCamera.transform.eulerAngles.y, 0.0f);
-                }
             }
 
 
             Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
-            float targetSlideVelocity = Sliding ? MaxSlideVelocity : 0;
-            if (CurSlideVelocity < targetSlideVelocity - speedOffset ||
-                CurSlideVelocity > targetSlideVelocity + speedOffset)
-            {
-                // creates curved result rather than a linear one giving a more organic speed change
-                // note T in Lerp is clamped, so we don't need to clamp our speed
-                CurSlideVelocity = Mathf.Lerp(CurSlideVelocity, targetSlideVelocity,
-                    Time.deltaTime * 1.0f);
-
-                // round speed to 3 decimal places
-                CurSlideVelocity = Mathf.Round(CurSlideVelocity * 1000f) / 1000f;
-            }
-            else
-            {
-                CurSlideVelocity = targetSlideVelocity;
-            }
-
-            CurSlideVelocity = targetSlideVelocity;
-
             // move the player
-            if (targetSlideVelocity > 0.2f)
-            {
-                Vector3 slideDirection = new Vector3(hitNormal.x, -hitNormal.y, hitNormal.z);
+            _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+                             new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
 
-                //slideDirection = Vector3.ProjectOnPlane(_controller.velocity, hitNormal);
-                //if (slideDirection.magnitude > 0)
-                //{
-                //    //slideDirection = Vector3.MoveTowards(slideDirection, Vector3.zero, 0.1f * Time.deltaTime);
-                //    slideDirection *= (1f - 0.1f * Time.deltaTime);
-                //}
-                //_controller.Move(slideDirection * Time.deltaTime);
-
-                _controller.Move(slideDirection.normalized * (CurSlideVelocity * Time.deltaTime) + targetDirection.normalized * (1f * Time.deltaTime));
-            } else {
-
-                //Physics.SyncTransforms();
-                _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
-                                 new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
-
-            }
             // update animator if using character
             if (_hasAnimator)
             {
@@ -465,7 +310,6 @@ namespace StarterAssets
                     {
                         _animator.SetBool(_animIDJump, true);
                     }
-
                 }
 
                 // jump timeout
@@ -476,26 +320,8 @@ namespace StarterAssets
             }
             else
             {
-                // check if walljumping
-                if (_input.jump && _input.move != Vector2.zero)
-                {
-                     
-
-                    bool foundWall = Physics.CheckSphere(_wallJumpSpherePos, _wallJumpSphereRad, GroundLayers,
-                QueryTriggerInteraction.Ignore);
-
-                    if (foundWall)
-                    {
-                        _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-                    }
-
-                    Debug.Log("Try walljumping");
-                }
-
-
-
                 // reset the jump timeout timer
-                    _jumpTimeoutDelta = JumpTimeout;
+                _jumpTimeoutDelta = JumpTimeout;
 
                 // fall timeout
                 if (_fallTimeoutDelta >= 0.0f)
@@ -533,7 +359,6 @@ namespace StarterAssets
         {
             Color transparentGreen = new Color(0.0f, 1.0f, 0.0f, 0.35f);
             Color transparentRed = new Color(1.0f, 0.0f, 0.0f, 0.35f);
-            Color transparentBlue = new Color(0.0f, 0.0f, 1.0f, 0.5f);
 
             if (Grounded) Gizmos.color = transparentGreen;
             else Gizmos.color = transparentRed;
@@ -542,19 +367,6 @@ namespace StarterAssets
             Gizmos.DrawSphere(
                 new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z),
                 GroundedRadius);
-
-
-            //Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
-            //float yDir = Mathf.Atan2(-inputDirection.x, -inputDirection.z) * Mathf.Rad2Deg +
-            //              _mainCamera.transform.eulerAngles.y;
-            //Vector3 worldDir = Quaternion.Euler(new Vector3(0f, yDir, 0f)) * new Vector3(0f, 0f, 1f);
-            //float rad = _controller.radius * 1.2f;
-
-            if (true || _input.move != Vector2.zero)
-            {
-                Gizmos.color = transparentBlue;
-                Gizmos.DrawSphere(_wallJumpSpherePos, _wallJumpSphereRad);
-            }
         }
 
         private void OnFootstep(AnimationEvent animationEvent)

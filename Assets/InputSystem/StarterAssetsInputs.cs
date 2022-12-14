@@ -12,9 +12,6 @@ namespace StarterAssets
 		public Vector2 look;
 		public bool jump;
 		public bool sprint;
-		public bool something;
-		public bool aim;
-		public bool toggleFullscreen;
 
 		[Header("Movement Settings")]
 		public bool analogMovement;
@@ -42,20 +39,6 @@ namespace StarterAssets
 			JumpInput(value.isPressed);
 		}
 
-		public void OnSomething(InputValue value)
-		{
-			SomethingInput(value.isPressed);
-		}
-		public void OnAim(InputValue value)
-		{
-			AimInput(value.isPressed);
-		}
-
-		public void OnFullscreen(InputValue value)
-		{
-			FullscreenInput(value.isPressed);
-		}
-
 		public void OnSprint(InputValue value)
 		{
 			SprintInput(value.isPressed);
@@ -78,20 +61,6 @@ namespace StarterAssets
 			jump = newJumpState;
 		}
 
-		public void SomethingInput(bool newSomethingState)
-		{
-			something = newSomethingState;
-			Screen.fullScreen = true;
-		}
-		public void AimInput(bool newSomethingState)
-		{
-			aim = newSomethingState;
-		}
-
-		public void FullscreenInput(bool newState)
-		{
-			toggleFullscreen = newState;
-		}
 		public void SprintInput(bool newSprintState)
 		{
 			sprint = newSprintState;
